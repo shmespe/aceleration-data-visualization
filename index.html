@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visualización de Datos desde CSV</title>
     <style>
-        /* Mismos estilos que antes */
+        /* Estilos generales */
         body {
             font-family: Arial, sans-serif;
             background-color: #f0f4f8;
@@ -47,6 +47,26 @@
             gap: 10px;
         }
 
+        .toggle-section {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .indicator {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            gap: 10px;
+        }
+
+        .indicator .light {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: green;
+        }
+
         label {
             font-weight: bold;
             margin-right: 10px;
@@ -75,23 +95,34 @@
     <div class="container">
         <h1>Visualización de Datos desde CSV</h1>
         <p>Los datos se cargan automáticamente desde el archivo <strong>data.csv</strong>.</p>
+
+        <div class="indicator">
+            <div class="light"></div>
+            <span>Conectado</span>
+        </div>
+
         <div class="chart-container">
             <canvas id="accelChart"></canvas>
         </div>
+
         <div class="controls">
-            <div>
-                <label for="xMin">xMin (segundos):</label>
-                <input type="number" id="xMin" step="1">
-                <label for="xMax">xMax (segundos):</label>
-                <input type="number" id="xMax" step="1">
+            <button id="toggleOptions">Mostrar/Ocultar Opciones</button>
+            <div class="toggle-section">
+                <div>
+                    <label for="xMin">xMin (segundos):</label>
+                    <input type="number" id="xMin" step="1">
+                    <label for="xMax">xMax (segundos):</label>
+                    <input type="number" id="xMax" step="1">
+                </div>
+                <div>
+                    <label for="yMin">yMin:</label>
+                    <input type="number" id="yMin" step="0.1">
+                    <label for="yMax">yMax:</label>
+                    <input type="number" id="yMax" step="0.1">
+                </div>
+                <button id="updateAxes">Actualizar Límites</button>
             </div>
-            <div>
-                <label for="yMin">yMin:</label>
-                <input type="number" id="yMin" step="0.1">
-                <label for="yMax">yMax:</label>
-                <input type="number" id="yMax" step="0.1">
-            </div>
-            <button id="updateAxes">Actualizar Límites</button>
+            <button id="saveData">Guardar Datos</button>
         </div>
     </div>
 
@@ -120,7 +151,7 @@
                             display: true,
                             text: 'Tiempo (s)',
                         },
-                        min: null, // Límites iniciales dinámicos
+                        min: null,
                         max: null,
                     },
                     y: {
@@ -135,60 +166,74 @@
             }
         });
 
-        // Función para cargar datos desde el archivo CSV
         function loadCSV() {
-            fetch('https://raw.githubusercontent.com/shmespe/aceleration-data-visualization/main/data.csv')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('No se pudo cargar el archivo CSV');
-                    }
-                    return response.text();
-                })
+            fetch('data.csv')
+                .then(response => response.text())
                 .then(csvText => {
-                    const rows = csvText.split('\n'); // Dividir por líneas
-                    accelChart.data.labels = []; // Limpiar etiquetas previas
-                    accelChart.data.datasets[0].data = []; // Limpiar datos previos
+                    const rows = csvText.split('\n');
+                    accelChart.data.labels = [];
+                    accelChart.data.datasets[0].data = [];
 
                     rows.forEach((row, index) => {
                         const [time, x] = row.split(',').map(val => val.trim());
-                        if (index > 0 && time && x) { // Omitir encabezado
-                            accelChart.data.labels.push(parseFloat(time)); // Agregar tiempo
-                            accelChart.data.datasets[0].data.push(parseFloat(x)); // Agregar dato X
+                        if (index > 0 && time && x) {
+                            accelChart.data.labels.push(parseFloat(time));
+                            accelChart.data.datasets[0].data.push(parseFloat(x));
                         }
                     });
 
-                    accelChart.update(); // Actualizar el gráfico
-                })
-                .catch(error => {
-                    console.error('Error al cargar el archivo CSV:', error);
+                    accelChart.update();
                 });
         }
 
-        // Función para actualizar los límites de los ejes
         function updateAxes() {
             const xMinInput = parseInt(document.getElementById('xMin').value, 10);
             const xMaxInput = parseInt(document.getElementById('xMax').value, 10);
             const yMin = parseFloat(document.getElementById('yMin').value);
             const yMax = parseFloat(document.getElementById('yMax').value);
 
-            // Encontrar los índices correspondientes a xMin y xMax en las etiquetas
             const xLabels = accelChart.data.labels;
             const xMin = xLabels.find(val => val >= xMinInput) || null;
             const xMax = xLabels.find(val => val >= xMaxInput) || null;
 
-            // Aplicar los límites al gráfico
             accelChart.options.scales.x.min = xMin !== null ? xMin : null;
             accelChart.options.scales.x.max = xMax !== null ? xMax : null;
             accelChart.options.scales.y.min = isNaN(yMin) ? null : yMin;
             accelChart.options.scales.y.max = isNaN(yMax) ? null : yMax;
 
-            accelChart.update(); // Aplicar cambios
+            accelChart.update();
         }
 
-        // Evento para el botón de actualizar ejes
-        document.getElementById('updateAxes').addEventListener('click', updateAxes);
+        function saveData() {
+            const xMinInput = parseInt(document.getElementById('xMin').value, 10);
+            const xMaxInput = parseInt(document.getElementById('xMax').value, 10);
 
-        // Cargar datos al iniciar
+            const xLabels = accelChart.data.labels;
+            const dataX = accelChart.data.datasets[0].data;
+
+            const filteredData = xLabels
+                .map((time, i) => ({ time, value: dataX[i] }))
+                .filter(({ time }) => (isNaN(xMinInput) || time >= xMinInput) && (isNaN(xMaxInput) || time <= xMaxInput));
+
+            const csvContent = 'data:text/csv;charset=utf-8,time,value\n' +
+                filteredData.map(({ time, value }) => `${time},${value}`).join('\n');
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'filtered_data.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        document.getElementById('updateAxes').addEventListener('click', updateAxes);
+        document.getElementById('saveData').addEventListener('click', saveData);
+        document.getElementById('toggleOptions').addEventListener('click', () => {
+            const optionsSection = document.querySelector('.toggle-section');
+            optionsSection.style.display = optionsSection.style.display === 'none' ? 'flex' : 'none';
+        });
+
         loadCSV();
     </script>
 </body>
