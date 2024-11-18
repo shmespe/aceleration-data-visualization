@@ -1,48 +1,86 @@
-// Función para cargar el archivo CSV y procesar los datos
-async function fetchCSV() {
-  const response = await fetch('aceleracion.csv');
-  const data = await response.text();
-  processData(data);
-}
+// Espera a que la página se cargue completamente
+window.onload = function() {
+    // Ruta del archivo CSV en GitHub Pages
+    const csvUrl = 'data.csv';
 
-// Función para procesar el CSV y graficar los datos
-function processData(csv) {
-  const rows = csv.split('\n');
-  const labels = [];
-  const accelerations = [];
+    // Utiliza PapaParse para leer el archivo CSV
+    Papa.parse(csvUrl, {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            // Almacena los datos procesados
+            const timeData = results.data.map(row => row.time_ni);
+            const accelData = results.data.map(row => row.acel_ni);
 
-  // Saltarse la cabecera del CSV
-  rows.slice(1).forEach(row => {
-    const cols = row.split(',');
-    if (cols.length > 1) {
-      labels.push(cols[0]); // Asumiendo que la primera columna es tiempo
-      accelerations.push(parseFloat(cols[1])); // Asumiendo que la segunda columna es aceleración
-    }
-  });
-
-  // Crear la gráfica
-  const ctx = document.getElementById('acelerationChart').getContext('2d');
-  const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels, // Los tiempos
-      datasets: [{
-        label: 'Aceleración (g)',
-        data: accelerations, // Los datos de aceleración
-        borderColor: 'rgb(75, 192, 192)',
-        fill: false
-      }]
-    },
-    options: {
-      scales: {
-        x: {
-          type: 'linear',
-          position: 'bottom'
+            // Llama a la función para graficar los datos
+            createChart(timeData, accelData);
+        },
+        error: function(error) {
+            console.error("Error al cargar el CSV: ", error);
         }
-      }
-    }
-  });
-}
+    });
+};
 
-// Llamada a la función para cargar el CSV
-fetchCSV();
+// Función para crear la gráfica
+function createChart(timeData, accelData) {
+    const ctx = document.getElementById('accelerationChart').getContext('2d');
+
+    // Crear el gráfico con Chart.js
+    const accelerationChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timeData,  // Eje X: Tiempo
+            datasets: [{
+                label: 'Aceleración (g)',
+                data: accelData,  // Eje Y: Aceleración
+                borderColor: 'rgb(75, 192, 192)',  // Color de la línea
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                fill: false,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Tiempo (s)'
+                    },
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 20  // Limitar el número de etiquetas del eje X
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Aceleración (g)'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            return 'Aceleración: ' + tooltipItem.raw.toFixed(3) + ' g';
+                        }
+                    }
+                }
+            },
+            zoom: {
+                pan: {
+                    enabled: true,
+                    mode: 'xy',
+                },
+                zoom: {
+                    enabled: true,
+                    mode: 'xy',
+                    speed: 0.1
+                }
+            }
+        }
+    });
+}
