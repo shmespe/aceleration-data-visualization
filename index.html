@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customizable Accelerometer Visualization</title>
+    <title>Visualización de Datos desde CSV</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,49 +18,18 @@
 
         .container {
             width: 80%;
-            max-width: 1200px;
+            max-width: 800px;
             background-color: #ffffff;
             padding: 20px;
             margin-top: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            border: 1px solid #d1d9e6;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         h1 {
             color: #003366;
             font-size: 24px;
             font-weight: bold;
-            margin: 0;
-        }
-
-        .controls {
-            margin: 20px 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .controls label {
-            font-weight: bold;
-            color: #003366;
-        }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .input-group input {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
         }
 
         .chart-container {
@@ -69,53 +38,12 @@
             width: 100%;
             margin-top: 20px;
         }
-
-        .save-button {
-            padding: 8px 16px;
-            background-color: #003366;
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-
-        .save-button:hover {
-            background-color: #002244;
-        }
-
-        .save-button.recording {
-            background-color: red;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Customizable Accelerometer Visualization</h1>
-        </div>
-
-        <div class="controls">
-            <div class="input-group">
-                <label for="x-min">X-axis Min:</label>
-                <input type="number" id="x-min" placeholder="Enter minimum value">
-            </div>
-            <div class="input-group">
-                <label for="x-max">X-axis Max:</label>
-                <input type="number" id="x-max" placeholder="Enter maximum value">
-            </div>
-            <div class="input-group">
-                <label for="y-min">Y-axis Min:</label>
-                <input type="number" id="y-min" placeholder="Enter minimum value">
-            </div>
-            <div class="input-group">
-                <label for="y-max">Y-axis Max:</label>
-                <input type="number" id="y-max" placeholder="Enter maximum value">
-            </div>
-            <button class="save-button" id="updateChart">Update Chart</button>
-        </div>
-
+        <h1>Visualización de Datos desde CSV</h1>
+        <p>Los datos se cargan automáticamente desde el archivo <strong>data.csv</strong>.</p>
         <div class="chart-container">
             <canvas id="accelChart"></canvas>
         </div>
@@ -127,13 +55,16 @@
         const accelChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array.from({ length: 30 }, (_, i) => i),
-                datasets: [{
-                    label: 'Sample Data',
-                    data: Array.from({ length: 30 }, () => Math.random() * 10),
-                    borderColor: '#003366',
-                    fill: false,
-                }]
+                labels: [], // Tiempos
+                datasets: [
+                    {
+                        label: 'Eje X',
+                        data: [],
+                        borderColor: '#003366',
+                        borderWidth: 2,
+                        fill: false,
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -141,37 +72,45 @@
                     x: {
                         title: {
                             display: true,
-                            text: 'X-axis'
+                            text: 'Tiempo (s)',
                         }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: 'Y-axis'
+                            text: 'Aceleración (g)',
                         }
                     }
                 }
             }
         });
 
-        document.getElementById('updateChart').addEventListener('click', () => {
-            const xMin = parseFloat(document.getElementById('x-min').value);
-            const xMax = parseFloat(document.getElementById('x-max').value);
-            const yMin = parseFloat(document.getElementById('y-min').value);
-            const yMax = parseFloat(document.getElementById('y-max').value);
+        // Cargar archivo CSV desde el servidor
+        fetch('https://raw.githubusercontent.com/shmespe/aceleration-data-visualization/main/data.csv') // Cambiar "data.csv" si tu archivo está en otro lugar
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('No se pudo cargar el archivo CSV');
+                }
+                return response.text();
+            })
+            .then(csvText => {
+                const rows = csvText.split('\n'); // Dividir por líneas
+                accelChart.data.labels = []; // Limpiar etiquetas previas
+                accelChart.data.datasets[0].data = []; // Limpiar datos previos
 
-            if (!isNaN(xMin) && !isNaN(xMax)) {
-                accelChart.options.scales.x.min = xMin;
-                accelChart.options.scales.x.max = xMax;
-            }
+                rows.forEach((row, index) => {
+                    const [time, x] = row.split(',').map(val => val.trim());
+                    if (index > 0 && time && x) { // Omitir encabezado
+                        accelChart.data.labels.push(time); // Agregar tiempo
+                        accelChart.data.datasets[0].data.push(parseFloat(x)); // Agregar dato X
+                    }
+                });
 
-            if (!isNaN(yMin) && !isNaN(yMax)) {
-                accelChart.options.scales.y.min = yMin;
-                accelChart.options.scales.y.max = yMax;
-            }
-
-            accelChart.update();
-        });
+                accelChart.update(); // Actualizar el gráfico
+            })
+            .catch(error => {
+                console.error('Error al cargar el archivo CSV:', error);
+            });
     </script>
 </body>
 </html>
