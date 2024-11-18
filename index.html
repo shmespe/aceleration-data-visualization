@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visualización de Datos desde CSV</title>
     <style>
+        /* Mismos estilos que antes */
         body {
             font-family: Arial, sans-serif;
             background-color: #f0f4f8;
@@ -79,10 +80,10 @@
         </div>
         <div class="controls">
             <div>
-                <label for="xMin">xMin:</label>
-                <input type="number" id="xMin" step="0.1">
-                <label for="xMax">xMax:</label>
-                <input type="number" id="xMax" step="0.1">
+                <label for="xMin">xMin (segundos):</label>
+                <input type="number" id="xMin" step="1">
+                <label for="xMax">xMax (segundos):</label>
+                <input type="number" id="xMax" step="1">
             </div>
             <div>
                 <label for="yMin">yMin:</label>
@@ -136,7 +137,7 @@
 
         // Función para cargar datos desde el archivo CSV
         function loadCSV() {
-            fetch('data.csv')
+            fetch('https://raw.githubusercontent.com/shmespe/aceleration-data-visualization/main/data.csv')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('No se pudo cargar el archivo CSV');
@@ -165,13 +166,19 @@
 
         // Función para actualizar los límites de los ejes
         function updateAxes() {
-            const xMin = parseFloat(document.getElementById('xMin').value);
-            const xMax = parseFloat(document.getElementById('xMax').value);
+            const xMinInput = parseInt(document.getElementById('xMin').value, 10);
+            const xMaxInput = parseInt(document.getElementById('xMax').value, 10);
             const yMin = parseFloat(document.getElementById('yMin').value);
             const yMax = parseFloat(document.getElementById('yMax').value);
 
-            accelChart.options.scales.x.min = isNaN(xMin) ? null : xMin;
-            accelChart.options.scales.x.max = isNaN(xMax) ? null : xMax;
+            // Encontrar los índices correspondientes a xMin y xMax en las etiquetas
+            const xLabels = accelChart.data.labels;
+            const xMin = xLabels.find(val => val >= xMinInput) || null;
+            const xMax = xLabels.find(val => val >= xMaxInput) || null;
+
+            // Aplicar los límites al gráfico
+            accelChart.options.scales.x.min = xMin !== null ? xMin : null;
+            accelChart.options.scales.x.max = xMax !== null ? xMax : null;
             accelChart.options.scales.y.min = isNaN(yMin) ? null : yMin;
             accelChart.options.scales.y.max = isNaN(yMax) ? null : yMax;
 
