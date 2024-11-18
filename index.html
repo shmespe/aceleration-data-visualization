@@ -1,17 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visualización de Datos de Aceleración</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfica de Aceleración</title>
+
+    <!-- Agregar Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Agregar PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 </head>
 <body>
-  <div>
     <h1>Gráfica de Aceleración vs Tiempo</h1>
-    <canvas id="acelerationChart"></canvas>
-  </div>
-  <script src="script.js"></script>
+
+    <!-- Aquí se mostrará la gráfica -->
+    <canvas id="myChart" width="400" height="200"></canvas>
+
+    <script>
+        // Cargar el archivo CSV y procesar los datos
+        Papa.parse("data.csv", {
+            download: true,  // Permite descargar el archivo CSV
+            header: true,    // Si el archivo CSV tiene encabezados
+            dynamicTyping: true, // Convierte automáticamente los tipos de datos
+            complete: function(results) {
+                // Procesamos los datos
+                const tiempos = results.data.map(row => row['Tiempo']);  // Cambiar según tu CSV
+                const aceleraciones = results.data.map(row => row['Gravedad']);  // Cambiar según tu CSV
+
+                // Crear la gráfica
+                const ctx = document.getElementById('myChart').getContext('2d');
+                const myChart = new Chart(ctx, {
+                    type: 'line', // Gráfica de líneas
+                    data: {
+                        labels: tiempos, // Datos de tiempo para el eje X
+                        datasets: [{
+                            label: 'Aceleración (g)', // Etiqueta de la gráfica
+                            data: aceleraciones, // Datos de aceleración para el eje Y
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                            fill: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Tiempo (s)' // Título del eje X
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Aceleración (g)' // Título del eje Y
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
