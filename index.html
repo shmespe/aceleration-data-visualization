@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visualización de Datos de Aceleración</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Incluye Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script> <!-- Incluye chartjs-plugin-zoom -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script> <!-- Incluye PapaParse para leer CSV -->
     <style>
         /* Estilos en el mismo archivo HTML */
@@ -56,7 +57,7 @@
         window.onload = function() {
             // Ruta del archivo CSV en GitHub Pages (debes actualizar la URL según tu archivo)
             const csvUrl = 'https://raw.githubusercontent.com/shmespe/aceleration-data-visualization/main/data.csv';
-            
+
             // Utiliza PapaParse para leer el archivo CSV
             Papa.parse(csvUrl, {
                 download: true,
@@ -120,6 +121,24 @@
                             callbacks: {
                                 label: function(tooltipItem) {
                                     return 'Aceleración: ' + tooltipItem.raw.toFixed(3) + ' g';
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'xy', // Habilita el desplazamiento en los ejes X y Y
+                                speed: 10, // Velocidad de desplazamiento
+                                threshold: 10  // Distancia mínima para activar el desplazamiento
+                            },
+                            zoom: {
+                                enabled: true,
+                                mode: 'xy', // Habilita el zoom en los ejes X y Y
+                                speed: 0.1,  // Velocidad de zoom
+                                sensitivity: 3,  // Sensibilidad del zoom
+                                limits: {
+                                    x: {min: 'original', max: 'original'},  // Límites del zoom en X
+                                    y: {min: 'original', max: 'original'}   // Límites del zoom en Y
                                 }
                             }
                         }
