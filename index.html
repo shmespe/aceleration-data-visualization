@@ -1,151 +1,94 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualización de Datos de Aceleración</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Incluye Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script> <!-- Incluye chartjs-plugin-zoom -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script> <!-- Incluye PapaParse para leer CSV -->
+    <title>Gráfica Interactiva</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script> <!-- Asegúrate de incluir este plugin -->
     <style>
-        /* Estilos en el mismo archivo HTML */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f9;
-            text-align: center;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 1000px;
-            margin: 20px auto;
-        }
-
-        h1 {
-            font-size: 2em;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
         canvas {
-            max-width: 100%;
-            height: 400px;
-            margin-top: 20px;
-        }
-
-        footer {
-            margin-top: 50px;
-            font-size: 0.9em;
-            color: #777;
+            border: 1px solid #000;
+            cursor: grab;  /* Esto cambia el cursor para indicar la posibilidad de hacer pan */
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Visualización de Datos de Aceleración</h1>
-        <canvas id="accelerationChart"></canvas> <!-- Aquí se dibuja la gráfica -->
-    </div>
-    
-    <footer>
-        <p>Gráfico generado a partir de datos de aceleración (CSV)</p>
-    </footer>
+    <h2>Gráfica Interactiva con Zoom y Pan</h2>
+    <canvas id="myChart" width="600" height="400"></canvas>
 
     <script>
-        // Espera a que la página se cargue completamente
-        window.onload = function() {
-            // Ruta del archivo CSV en GitHub Pages (debes actualizar la URL según tu archivo)
-            const csvUrl = 'https://raw.githubusercontent.com/shmespe/aceleration-data-visualization/main/data.csv';
+        // Cargar los datos desde el archivo CSV (asegurándonos que esté bien cargado)
+        async function fetchData() {
+            const response = await fetch('https://raw.githubusercontent.com/tu_usuario/tu_repositorio/main/data.csv');
+            const data = await response.text();
+            return data;
+        }
 
-            // Utiliza PapaParse para leer el archivo CSV
-            Papa.parse(csvUrl, {
-                download: true,
-                header: true,
-                dynamicTyping: true,
-                complete: function(results) {
-                    // Almacena los datos procesados
-                    const timeData = results.data.map(row => row.time_ni);
-                    const accelData = results.data.map(row => row.acel_ni);
-
-                    // Llama a la función para graficar los datos
-                    createChart(timeData, accelData);
-                },
-                error: function(error) {
-                    console.error("Error al cargar el CSV: ", error);
-                }
+        fetchData().then(data => {
+            const rows = data.split('\n').slice(1);
+            const time = [];
+            const accel = [];
+            rows.forEach(row => {
+                const cols = row.split(',');
+                time.push(parseFloat(cols[0]));  // Asumimos que el primer valor es el tiempo
+                accel.push(parseFloat(cols[1])); // El segundo valor es la aceleración
             });
-        };
 
-        // Función para crear la gráfica
-        function createChart(timeData, accelData) {
-            const ctx = document.getElementById('accelerationChart').getContext('2d');
-
-            // Crear el gráfico con Chart.js
-            const accelerationChart = new Chart(ctx, {
+            // Crear el gráfico
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const myChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: timeData,  // Eje X: Tiempo
+                    labels: time,  // Eje X (tiempo)
                     datasets: [{
                         label: 'Aceleración (g)',
-                        data: accelData,  // Eje Y: Aceleración
-                        borderColor: 'rgb(75, 192, 192)',  // Color de la línea
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        data: accel,  // Datos de aceleración
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
                         fill: false,
-                        tension: 0.1
                     }]
                 },
                 options: {
                     responsive: true,
                     scales: {
                         x: {
-                            title: {
-                                display: true,
-                                text: 'Tiempo (s)'
-                            },
-                            ticks: {
-                                autoSkip: true,
-                                maxTicksLimit: 20  // Limitar el número de etiquetas del eje X
-                            }
+                            type: 'linear',  // Aseguramos que el eje X sea numérico
+                            position: 'bottom',
                         },
                         y: {
-                            title: {
-                                display: true,
-                                text: 'Aceleración (g)'
-                            }
+                            beginAtZero: true
                         }
                     },
                     plugins: {
-                        tooltip: {
-                            enabled: true,
-                            callbacks: {
-                                label: function(tooltipItem) {
-                                    return 'Aceleración: ' + tooltipItem.raw.toFixed(3) + ' g';
-                                }
-                            }
-                        },
                         zoom: {
                             pan: {
                                 enabled: true,
-                                mode: 'xy', // Habilita el desplazamiento en los ejes X y Y
-                                speed: 10, // Velocidad de desplazamiento
-                                threshold: 10  // Distancia mínima para activar el desplazamiento
+                                mode: 'xy',
+                                speed: 10,
+                                threshold: 10,
                             },
                             zoom: {
                                 enabled: true,
-                                mode: 'xy', // Habilita el zoom en los ejes X y Y
-                                speed: 0.1,  // Velocidad de zoom
-                                sensitivity: 3,  // Sensibilidad del zoom
+                                mode: 'xy',
+                                speed: 0.1,
+                                sensitivity: 3,
                                 limits: {
-                                    x: {min: 'original', max: 'original'},  // Límites del zoom en X
-                                    y: {min: 'original', max: 'original'}   // Límites del zoom en Y
+                                    x: {min: 'original', max: 'original'},
+                                    y: {min: 'original', max: 'original'}
                                 }
                             }
                         }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
                     }
                 }
             });
-        }
+        }).catch(error => {
+            console.error("Error al cargar los datos:", error);
+        });
     </script>
 </body>
 </html>
