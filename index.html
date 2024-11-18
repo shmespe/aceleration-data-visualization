@@ -20,7 +20,7 @@
     <script>
         // Cargar los datos desde el archivo CSV (asegurándonos que esté bien cargado)
         async function fetchData() {
-            const response = await fetch('https://raw.githubusercontent.com/tu_usuario/tu_repositorio/main/data.csv');
+            const response = await fetch('https://raw.githubusercontent.com/shmespe/aceleration-data-visualization/main/data.csv');
             const data = await response.text();
             return data;
         }
