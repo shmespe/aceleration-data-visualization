@@ -3,17 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gráfica de Aceleración</title>
-    <link rel="stylesheet" href="style.css"> <!-- Enlace al archivo CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js para la gráfica -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script> <!-- PapaParse para leer el CSV -->
+    <title>Visualización de Datos de Aceleración</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Incluye Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script> <!-- Incluye PapaParse para leer CSV -->
+    <style>
+        /* Estilos en el mismo archivo HTML */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            text-align: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 20px auto;
+        }
+
+        h1 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        footer {
+            margin-top: 50px;
+            font-size: 0.9em;
+            color: #777;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Visualización de Datos de Aceleración</h1>
-        <canvas id="accelerationChart"></canvas> <!-- Aquí se dibujará la gráfica -->
+        <canvas id="accelerationChart"></canvas> <!-- Aquí se dibuja la gráfica -->
     </div>
     
-    <script src="script.js"></script> <!-- Enlace al archivo JavaScript -->
+    <footer>
+        <p>Gráfico generado a partir de datos de aceleración (CSV)</p>
+    </footer>
+
+    <script>
+        // Espera a que la página se cargue completamente
+        window.onload = function() {
+            // Ruta del archivo CSV en GitHub Pages (debes actualizar la URL según tu archivo)
+            const csvUrl = 'https://raw.githubusercontent.com/tu_usuario/tu_repositorio/main/data.csv';
+
+            // Utiliza PapaParse para leer el archivo CSV
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    // Almacena los datos procesados
+                    const timeData = results.data.map(row => row.time_ni);
+                    const accelData = results.data.map(row => row.acel_ni);
+
+                    // Llama a la función para graficar los datos
+                    createChart(timeData, accelData);
+                },
+                error: function(error) {
+                    console.error("Error al cargar el CSV: ", error);
+                }
+            });
+        };
+
+        // Función para crear la gráfica
+        function createChart(timeData, accelData) {
+            const ctx = document.getElementById('accelerationChart').getContext('2d');
+
+            // Crear el gráfico con Chart.js
+            const accelerationChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeData,  // Eje X: Tiempo
+                    datasets: [{
+                        label: 'Aceleración (g)',
+                        data: accelData,  // Eje Y: Aceleración
+                        borderColor: 'rgb(75, 192, 192)',  // Color de la línea
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Tiempo (s)'
+                            },
+                            ticks: {
+                                autoSkip: true,
+                                maxTicksLimit: 20  // Limitar el número de etiquetas del eje X
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Aceleración (g)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return 'Aceleración: ' + tooltipItem.raw.toFixed(3) + ' g';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
