@@ -3,173 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gráfica Interactiva con Límites Personalizados</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <title>Customizable Accelerometer Visualization</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
+            background-color: #f0f4f8;
+            color: #333;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        h2 {
-            color: #333;
+        .container {
+            width: 80%;
+            max-width: 1200px;
+            background-color: #ffffff;
+            padding: 20px;
             margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            border: 1px solid #d1d9e6;
         }
 
-        .inputs-container {
-            margin: 20px;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .inputs-container label {
-            margin-right: 10px;
+        h1 {
+            color: #003366;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
         }
 
-        canvas {
-            border: 1px solid #000;
-            cursor: grab;
-            background-color: #fff;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
-            max-width: 100%;
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        .update-button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
+        .controls label {
+            font-weight: bold;
+            color: #003366;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group input {
+            padding: 8px;
+            border: 1px solid #ccc;
             border-radius: 4px;
         }
 
-        .update-button:hover {
-            background-color: #45a049;
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .save-button {
+            padding: 8px 16px;
+            background-color: #003366;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .save-button:hover {
+            background-color: #002244;
+        }
+
+        .save-button.recording {
+            background-color: red;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>Customizable Accelerometer Visualization</h1>
+        </div>
 
-    <h2>Gráfica de Aceleraciones en Gravedad</h2>
-    
-    <div class="inputs-container">
-        <label for="xMin">X Min:</label>
-        <input type="number" id="xMin" step="0.1">
-        <label for="xMax">X Max:</label>
-        <input type="number" id="xMax" step="0.1">
-        <label for="yMin">Y Min:</label>
-        <input type="number" id="yMin" step="0.1">
-        <label for="yMax">Y Max:</label>
-        <input type="number" id="yMax" step="0.1">
-        <button class="update-button" onclick="updateAxes()">Actualizar Límites</button>
+        <div class="controls">
+            <div class="input-group">
+                <label for="x-min">X-axis Min:</label>
+                <input type="number" id="x-min" placeholder="Enter minimum value">
+            </div>
+            <div class="input-group">
+                <label for="x-max">X-axis Max:</label>
+                <input type="number" id="x-max" placeholder="Enter maximum value">
+            </div>
+            <div class="input-group">
+                <label for="y-min">Y-axis Min:</label>
+                <input type="number" id="y-min" placeholder="Enter minimum value">
+            </div>
+            <div class="input-group">
+                <label for="y-max">Y-axis Max:</label>
+                <input type="number" id="y-max" placeholder="Enter maximum value">
+            </div>
+            <button class="save-button" id="updateChart">Update Chart</button>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="accelChart"></canvas>
+        </div>
     </div>
 
-    <canvas id="myChart"></canvas>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Asume que los datos están en un archivo CSV y se cargan correctamente
-        fetch('https://raw.githubusercontent.com/shmespe/aceleration-data-visualization/main/data.csv')
-            .then(response => response.text())
-            .then(data => {
-                const parsedData = parseCSV(data);
-                createChart(parsedData.time, parsedData.gravity);
-            });
-
-        // Función para parsear el CSV
-        function parseCSV(csv) {
-            const rows = csv.split("\n");
-            const time = [];
-            const gravity = [];
-
-            rows.forEach(row => {
-                const cols = row.split(",");
-                if (cols.length === 2) {
-                    time.push(parseFloat(cols[0]));
-                    gravity.push(parseFloat(cols[1]));
-                }
-            });
-
-            return { time, gravity };
-        }
-
-        let chart; // Declaración global para actualizar los ejes más tarde
-
-        // Función para crear la gráfica
-        function createChart(time, gravity) {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: time,
-                    datasets: [{
-                        label: 'Aceleración (gravedad)',
-                        data: gravity,
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderWidth: 1,
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        zoom: {
-                            pan: {
-                                enabled: true,
-                                mode: 'xy',
-                                speed: 10,
-                                threshold: 10
-                            },
-                            zoom: {
-                                enabled: true,
-                                mode: 'xy',
-                                speed: 0.1,
-                                sensitivity: 3
-                            }
+        const ctx = document.getElementById('accelChart').getContext('2d');
+        const accelChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: 30 }, (_, i) => i),
+                datasets: [{
+                    label: 'Sample Data',
+                    data: Array.from({ length: 30 }, () => Math.random() * 10),
+                    borderColor: '#003366',
+                    fill: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'X-axis'
                         }
                     },
-                    scales: {
-                        x: {
-                            type: 'linear',
-                            position: 'bottom',
-                            title: {
-                                display: true,
-                                text: 'Tiempo (segundos)'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Gravedad (g)'
-                            }
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Y-axis'
                         }
                     }
                 }
-            });
-        }
-
-        // Función para actualizar los límites de los ejes
-        function updateAxes() {
-            const xMin = document.getElementById('xMin').value;
-            const xMax = document.getElementById('xMax').value;
-            const yMin = document.getElementById('yMin').value;
-            const yMax = document.getElementById('yMax').value;
-
-            if (chart) {
-                if (xMin) chart.options.scales.x.min = parseFloat(xMin);
-                if (xMax) chart.options.scales.x.max = parseFloat(xMax);
-                if (yMin) chart.options.scales.y.min = parseFloat(yMin);
-                if (yMax) chart.options.scales.y.max = parseFloat(yMax);
-
-                chart.update(); // Actualiza la gráfica con los nuevos límites
             }
-        }
-    </script>
+        });
 
+        document.getElementById('updateChart').addEventListener('click', () => {
+            const xMin = parseFloat(document.getElementById('x-min').value);
+            const xMax = parseFloat(document.getElementById('x-max').value);
+            const yMin = parseFloat(document.getElementById('y-min').value);
+            const yMax = parseFloat(document.getElementById('y-max').value);
+
+            if (!isNaN(xMin) && !isNaN(xMax)) {
+                accelChart.options.scales.x.min = xMin;
+                accelChart.options.scales.x.max = xMax;
+            }
+
+            if (!isNaN(yMin) && !isNaN(yMax)) {
+                accelChart.options.scales.y.min = yMin;
+                accelChart.options.scales.y.max = yMax;
+            }
+
+            accelChart.update();
+        });
+    </script>
 </body>
 </html>
