@@ -38,6 +38,36 @@
             width: 100%;
             margin-top: 20px;
         }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        input {
+            width: 60px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 8px 12px;
+            background-color: #003366;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #00509e;
+        }
     </style>
 </head>
 <body>
@@ -46,6 +76,21 @@
         <p>Los datos se cargan automáticamente desde el archivo <strong>data.csv</strong>.</p>
         <div class="chart-container">
             <canvas id="accelChart"></canvas>
+        </div>
+        <div class="controls">
+            <div>
+                <label for="xMin">xMin:</label>
+                <input type="number" id="xMin" step="0.1">
+                <label for="xMax">xMax:</label>
+                <input type="number" id="xMax" step="0.1">
+            </div>
+            <div>
+                <label for="yMin">yMin:</label>
+                <input type="number" id="yMin" step="0.1">
+                <label for="yMax">yMax:</label>
+                <input type="number" id="yMax" step="0.1">
+            </div>
+            <button id="updateAxes">Actualizar Límites</button>
         </div>
     </div>
 
@@ -73,44 +118,71 @@
                         title: {
                             display: true,
                             text: 'Tiempo (s)',
-                        }
+                        },
+                        min: null, // Límites iniciales dinámicos
+                        max: null,
                     },
                     y: {
                         title: {
                             display: true,
                             text: 'Aceleración (g)',
-                        }
+                        },
+                        min: null,
+                        max: null,
                     }
                 }
             }
         });
 
-        // Cargar archivo CSV desde el servidor
-        fetch('https://raw.githubusercontent.com/shmespe/aceleration-data-visualization/main/data.csv') // Cambiar "data.csv" si tu archivo está en otro lugar
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('No se pudo cargar el archivo CSV');
-                }
-                return response.text();
-            })
-            .then(csvText => {
-                const rows = csvText.split('\n'); // Dividir por líneas
-                accelChart.data.labels = []; // Limpiar etiquetas previas
-                accelChart.data.datasets[0].data = []; // Limpiar datos previos
-
-                rows.forEach((row, index) => {
-                    const [time, x] = row.split(',').map(val => val.trim());
-                    if (index > 0 && time && x) { // Omitir encabezado
-                        accelChart.data.labels.push(time); // Agregar tiempo
-                        accelChart.data.datasets[0].data.push(parseFloat(x)); // Agregar dato X
+        // Función para cargar datos desde el archivo CSV
+        function loadCSV() {
+            fetch('data.csv')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No se pudo cargar el archivo CSV');
                     }
-                });
+                    return response.text();
+                })
+                .then(csvText => {
+                    const rows = csvText.split('\n'); // Dividir por líneas
+                    accelChart.data.labels = []; // Limpiar etiquetas previas
+                    accelChart.data.datasets[0].data = []; // Limpiar datos previos
 
-                accelChart.update(); // Actualizar el gráfico
-            })
-            .catch(error => {
-                console.error('Error al cargar el archivo CSV:', error);
-            });
+                    rows.forEach((row, index) => {
+                        const [time, x] = row.split(',').map(val => val.trim());
+                        if (index > 0 && time && x) { // Omitir encabezado
+                            accelChart.data.labels.push(parseFloat(time)); // Agregar tiempo
+                            accelChart.data.datasets[0].data.push(parseFloat(x)); // Agregar dato X
+                        }
+                    });
+
+                    accelChart.update(); // Actualizar el gráfico
+                })
+                .catch(error => {
+                    console.error('Error al cargar el archivo CSV:', error);
+                });
+        }
+
+        // Función para actualizar los límites de los ejes
+        function updateAxes() {
+            const xMin = parseFloat(document.getElementById('xMin').value);
+            const xMax = parseFloat(document.getElementById('xMax').value);
+            const yMin = parseFloat(document.getElementById('yMin').value);
+            const yMax = parseFloat(document.getElementById('yMax').value);
+
+            accelChart.options.scales.x.min = isNaN(xMin) ? null : xMin;
+            accelChart.options.scales.x.max = isNaN(xMax) ? null : xMax;
+            accelChart.options.scales.y.min = isNaN(yMin) ? null : yMin;
+            accelChart.options.scales.y.max = isNaN(yMax) ? null : yMax;
+
+            accelChart.update(); // Aplicar cambios
+        }
+
+        // Evento para el botón de actualizar ejes
+        document.getElementById('updateAxes').addEventListener('click', updateAxes);
+
+        // Cargar datos al iniciar
+        loadCSV();
     </script>
 </body>
 </html>
